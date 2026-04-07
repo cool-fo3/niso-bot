@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="he" dir="auto">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ניסו הדייג</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0ebe3;
+      min-height: 100vh;
+    }
+
+    /* Fake restaurant page background */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 120px;
+    }
+
+    .restaurant-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .restaurant-header h1 {
+      font-size: 2.4rem;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    .restaurant-header p {
+      color: #666;
+      margin-top: 6px;
+      font-size: 1rem;
+    }
+
+    .restaurant-header .tag {
+      display: inline-block;
+      margin-top: 10px;
+      background: #2c6e49;
+      color: white;
+      font-size: 0.78rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* Chat bubble button */
+    #chat-toggle {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #2c6e49;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: background 0.2s;
+    }
+
+    #chat-toggle:hover { background: #235c3c; }
+
+    #chat-toggle svg { width: 28px; height: 28px; fill: white; }
+
+    /* Chat window */
+    #chat-window {
+      position: fixed;
+      bottom: 100px;
+      right: 28px;
+      width: 360px;
+      max-height: 520px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      z-index: 999;
+      overflow: hidden;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    #chat-window.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+    }
+
+    .chat-header {
+      background: #2c6e49;
+      color: white;
+      padding: 14px 18px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-header .dot {
+      width: 9px;
+      height: 9px;
+      background: #7be495;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .chat-header .subtitle {
+      font-size: 0.72rem;
+      font-weight: 400;
+      opacity: 0.85;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .msg {
+      max-width: 82%;
+      padding: 9px 13px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.bot {
+      background: #f1f1f1;
+      color: #1a1a1a;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.user {
+      background: #2c6e49;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.system {
+      background: #fff3cd;
+      color: #856404;
+      align-self: center;
+      font-size: 0.8rem;
+      text-align: center;
+      border-radius: 8px;
+      max-width: 95%;
+    }
+
+    .typing {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 10px 13px;
+      background: #f1f1f1;
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .typing span {
+      width: 7px;
+      height: 7px;
+      background: #999;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    .chat-input-area {
+      padding: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 8px;
+    }
+
+    #user-input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      outline: none;
+      resize: none;
+      line-height: 1.4;
+      max-height: 100px;
+      font-family: inherit;
+    }
+
+    #user-input:focus { border-color: #2c6e49; }
+
+    #send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #2c6e49;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      align-self: flex-end;
+      transition: background 0.2s;
+    }
+
+    #send-btn:hover { background: #235c3c; }
+    #send-btn:disabled { background: #aaa; cursor: default; }
+    #send-btn svg { width: 18px; height: 18px; fill: white; }
+
+    @media (max-width: 420px) {
+      #chat-window { width: calc(100vw - 32px); right: 16px; bottom: 90px; }
+      #chat-toggle { right: 16px; bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="restaurant-header">
+    <h1>ניסו הדייג 🐟</h1>
+    <p>מסעדת דגים וגריל | מרינת אשקלון</p>
+    <span class="tag">כשר בד"צ בית יוסף</span>
+  </div>
+</div>
+
+<!-- Chat toggle button -->
+<button id="chat-toggle" aria-label="Open chat">
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</button>
+
+<!-- Chat window -->
+<div id="chat-window" class="hidden">
+  <div class="chat-header">
+    <div class="dot"></div>
+    <div>
+      <div>ניסו הדייג</div>
+      <div class="subtitle">עונה בדרך כלל תוך שניות</div>
+    </div>
+  </div>
+  <div id="messages"></div>
+  <div class="chat-input-area">
+    <textarea id="user-input" placeholder="שאל/י אותנו משהו..." rows="1"></textarea>
+    <button id="send-btn" aria-label="Send">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  const toggle = document.getElementById('chat-toggle');
+  const chatWindow = document.getElementById('chat-window');
+  const messages = document.getElementById('messages');
+  const input = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  let isOpen = false;
+  let isWaiting = false;
+  let limitReached = false;
+
+  toggle.addEventListener('click', () => {
+    isOpen = !isOpen;
+    chatWindow.classList.toggle('hidden', !isOpen);
+    if (isOpen) input.focus();
+  });
+
+  function addMessage(text, role) {
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'typing';
+    div.id = 'typing-indicator';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text || isWaiting || limitReached) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    addMessage(text, 'user');
+    isWaiting = true;
+    sendBtn.disabled = true;
+    showTyping();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      removeTyping();
+      if (res.status === 429) {
+        addMessage('שלחת הרבה מדי הודעות — אנא המתן כמה דקות ונסה שוב.', 'system');
+      } else {
+        const data = await res.json();
+        addMessage(data.reply, data.limit_reached ? 'system' : 'bot');
+        if (data.limit_reached) {
+          limitReached = true;
+          input.disabled = true;
+          sendBtn.disabled = true;
+          input.placeholder = 'השיחה הסתיימה';
+        }
+      }
+    } catch (e) {
+      removeTyping();
+      addMessage('שגיאה — אנא נסה שוב או התקשר ל-08-9954545', 'system');
+    }
+
+    isWaiting = false;
+    if (!limitReached) sendBtn.disabled = false;
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Auto-resize textarea
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  });
+</script>
+
+</body>
+</html>
