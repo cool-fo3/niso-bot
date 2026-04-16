@@ -563,10 +563,8 @@
         addSystemMsg('שלחת יותר מדי הודעות — המתן כמה דקות');
       } else {
         const data = await res.json();
-        const booking = parseBooking(data.reply);
-        const cleanReply = data.reply.replace(/\[BOOKING_SENT:[^\]]+\]/, '').trim();
-        addMessage(cleanReply, 'bot');
-        if (booking) setTimeout(() => showOwnerNotif(booking), 600);
+        addMessage(data.reply, 'bot');
+        if (data.booking) setTimeout(() => showOwnerNotif(data.booking), 600);
         if (data.limit_reached) {
           limitReached = true;
           inputEl.disabled = true;

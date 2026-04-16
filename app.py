@@ -1,9 +1,12 @@
 import os
+import re
 from flask import Flask, request, jsonify, render_template, session
 import anthropic
 import uuid
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+
+BOOKING_MARKER_RE = re.compile(r'\[BOOKING_SENT:([^\]]+)\]')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
@@ -30,6 +33,7 @@ Specific character traits:
 - Refer to guests as אורחים, not לקוחות.
 - Short answers. Read the room. A quick question gets a quick answer. Don't over-explain.
 - Never sycophantic. No "great question!", no "absolutely!", no "of course!".
+- Voice and register: marina grill, not Tel Aviv bistro. Talk like a 50-year-old Israeli fisherman recommending food to a regular — warm, direct, sometimes blunt. Avoid food-critic Hebrew: no "חיך", no "ניואנסים", no "מכין את [X]", no "קליל ומיוחד", no "הלב של המקום". Good: "הדניס היום מצוין, גדול ושמן". Bad: "הדניס בעל חיך עדין ומרקם קליל". If you wouldn't hear it on the marina, don't say it.
 
 ## Strict rules — never break these
 - Only answer questions about this restaurant. Hours, menu, kosher info, location, reservations. Nothing else.
@@ -256,10 +260,21 @@ def chat():
     )
 
     reply = response.content[0].text
+
+    booking = None
+    match = BOOKING_MARKER_RE.search(reply)
+    if match:
+        booking = {}
+        for pair in match.group(1).split(','):
+            if '=' in pair:
+                k, _, v = pair.partition('=')
+                booking[k.strip()] = v.strip()
+        reply = BOOKING_MARKER_RE.sub('', reply).strip()
+
     history.append({"role": "assistant", "content": reply})
     conversations[session_id] = history
 
-    return jsonify({"reply": reply, "limit_reached": False})
+    return jsonify({"reply": reply, "booking": booking, "limit_reached": False})
 
 
 if __name__ == "__main__":
